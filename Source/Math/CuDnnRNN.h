@@ -80,6 +80,7 @@ public:
         m_dataType(CuDnnTensor::GetDataType<ElemType>()), m_cudnn(CuDnn::Instance())
     {
         CUDNN_CALL(cudnnCreateRNNDescriptor(&m_rnnDesc));
+#if CUDNN_VERSION >= 7000
         CUDNN_CALL(cudnnSetRNNDescriptor(*m_cudnn,
             m_rnnDesc,
             (int)m_rnnAttributes.m_hiddenSize,
@@ -90,6 +91,16 @@ public:
             GetMode(),
             CUDNN_RNN_ALGO_STANDARD,
             m_dataType));
+#else
+        CUDNN_CALL(cudnnSetRNNDescriptor(m_rnnDesc,
+            (int)m_rnnAttributes.m_hiddenSize,
+            (int)m_rnnAttributes.m_numLayers,
+            m_dropout,
+            CUDNN_LINEAR_INPUT, // We can also skip the input matrix transformation
+            m_rnnAttributes.m_bidirectional ? CUDNN_BIDIRECTIONAL : CUDNN_UNIDIRECTIONAL,
+            GetMode(),
+            m_dataType));
+#endif
     }
 
     ~CuDnnRNN()
