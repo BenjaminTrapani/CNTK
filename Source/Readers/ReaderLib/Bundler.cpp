@@ -255,24 +255,22 @@ public:
         auto& deserializers = m_parent->m_deserializers;
 
         // Fetch all chunks in parallel.
-        std::vector<std::map<ChunkIdType, std::shared_ptr<std::future<ChunkPtr>>>> chunks;
+        std::vector<std::map<ChunkIdType, std::shared_future<ChunkPtr>>> chunks;
         chunks.resize(chunk.m_secondaryChunks.size());
         for (size_t i = 0; i < chunk.m_secondaryChunks.size(); ++i)
         {
             for (const auto& c : chunk.m_secondaryChunks[i])
             {
-                chunks[i].emplace(
-                    std::make_pair(c,
-                        std::make_shared<std::future<ChunkPtr>>(
-                            std::async(
-                                launch::async,
-                                [this, c, i]()
-                                {
-                                    ChunkPtr chunk = m_parent->m_weakChunkTable[i][c].lock();
-                                    if (chunk)
-                                        return chunk;
-                                    return m_parent->m_deserializers[i]->GetChunk(c);
-                                }))));
+				std::packaged_task<ChunkPtr()> task([this, c, i] {
+					ChunkPtr chunk = m_parent->m_weakChunkTable[i][c].lock();
+					if (chunk)
+						return chunk;
+					return m_parent->m_deserializers[i]->GetChunk(c);
+				});
+				std::future<ChunkPtr> taskFuture = task.get_future();
+				std::thread t(std::move(task));
+				t.detach();
+                chunks[i].emplace(c, taskFuture.share());
             }
         }
 
@@ -281,7 +279,7 @@ public:
 
         // Creating chunk mapping.
         m_parent->m_primaryDeserializer->SequenceInfosForChunk(original.m_id, sequences);
-        ChunkPtr drivingChunk = chunks.front().find(original.m_id)->second->get();
+        ChunkPtr drivingChunk = chunks.front().find(original.m_id)->second.get();
         m_sequenceToSequence.resize(deserializers.size() * sequences.size());
         m_innerChunks.resize(deserializers.size() * sequences.size());
         for (size_t sequenceIndex = 0; sequenceIndex < sequences.size(); ++sequenceIndex)
@@ -324,7 +322,7 @@ public:
                 ChunkPtr secondaryChunk = chunkTable[s.m_chunkId].lock();
                 if (!secondaryChunk)
                 {
-                    secondaryChunk = chunks[deserializerIndex].find(s.m_chunkId)->second->get();
+                    secondaryChunk = chunks[deserializerIndex].find(s.m_chunkId)->second.get();
                     chunkTable[s.m_chunkId] = secondaryChunk;
                 }
 
