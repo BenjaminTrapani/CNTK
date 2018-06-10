@@ -501,6 +501,13 @@ namespace CNTK
 
                     opType = PrimitiveOpType::EditDistanceError;
                 }
+				else if (node->OperationName() == OperationNameOf(TranscriptionErrorNode)) {
+					auto edNode = node->As<TranscriptionErrorNode<ElementType>>();
+                    primitiveFunctionConfigParameters[PrimitiveFunctionAttribute::AttributeNameSquashInputs] = edNode->SquashInputs();
+                    primitiveFunctionConfigParameters[PrimitiveFunctionAttribute::AttributeNameTokensToIgnore] = AsDictionaryValueVector(edNode->TokensToIgnore());
+
+					opType = PrimitiveOpType::TranscriptionError;
+				}
                 else if (node->OperationName() == OperationNameOf(StopGradientNode))
                 {
                     opType = PrimitiveOpType::StopGradient;

@@ -65,6 +65,7 @@ namespace CNTK
         {PrimitiveOpType::LatticeSequenceWithSoftmax, L"LatticeSequenceWithSoftmax" },
         {PrimitiveOpType::ClassificationError, L"ClassificationError"},
         {PrimitiveOpType::EditDistanceError, L"EditDistanceError" },
+		{PrimitiveOpType::TranscriptionError, L"TranscriptionError"},
         {PrimitiveOpType::ForwardBackward, L"ForwardBackward" },
         {PrimitiveOpType::LabelsToGraph, L"LabelsToGraph" },
         {PrimitiveOpType::PastValue, L"PastValue"},

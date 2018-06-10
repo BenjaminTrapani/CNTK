@@ -1170,6 +1170,13 @@ namespace CNTK
                     ASSIGN_NEW_NODE(EditDistanceErrorNode, network->GetDeviceId(), internalNodeName, subPen, delPen, insPen, squashInputs, tokensToIgnore);
                     break;
                 }
+				case PrimitiveOpType::TranscriptionError:
+				{
+                    auto squashInputs = functionConfig[PrimitiveFunctionAttribute::AttributeNameSquashInputs].Value<bool>();
+                    auto tokensToIgnore = AsVector<size_t>(functionConfig[PrimitiveFunctionAttribute::AttributeNameTokensToIgnore].Value<std::vector<DictionaryValue>>());
+                    ASSIGN_NEW_NODE(TranscriptionErrorNode, network->GetDeviceId(), internalNodeName, squashInputs, tokensToIgnore);
+                    break;
+				}
                 case PrimitiveOpType::LatticeSequenceWithSoftmax:
                 {
                     auto symListPath = functionConfig[PrimitiveFunctionAttribute::AttributeNameSymListPath].Value<wstring>();
