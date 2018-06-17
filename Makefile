@@ -91,8 +91,10 @@ PROTOC = $(PROTOBUF_PATH)/bin/protoc
 #SSE_FLAGS =
 
 SOURCEDIR:= Source
-INCLUDEPATH:= $(addprefix $(SOURCEDIR)/, Common/Include CNTKv2LibraryDll CNTKv2LibraryDll/API CNTKv2LibraryDll/proto ../Examples/Extensibility/CPP Math CNTK ActionsLib ComputationNetworkLib SGDLib SequenceTrainingLib CNTK/BrainScript Readers/ReaderLib PerformanceProfilerDll)
+GSL_PATH:=$(SOURCEDIR)/../external/gsl
+INCLUDEPATH:= $(addprefix $(SOURCEDIR)/, Common/Include CNTKv2LibraryDll CNTKv2LibraryDll/API CNTKv2LibraryDll/Generated/Linux CNTKv2LibraryDll/proto ../Examples/Extensibility/CPP Math CNTK ActionsLib ComputationNetworkLib SGDLib SequenceTrainingLib CNTK/BrainScript Readers/ReaderLib PerformanceProfilerDll)
 INCLUDEPATH+=$(PROTOBUF_PATH)/include
+INCLUDEPATH+=$(GSL_PATH)/include
 # COMMON_FLAGS include settings that are passed both to NVCC and C++ compilers.
 COMMON_FLAGS:= $(COMMON_FLAGS) -DHAS_MPI=$(HAS_MPI) -D_POSIX_SOURCE -D_XOPEN_SOURCE=600 -D__USE_XOPEN2K -std=c++11 -DCUDA_NO_HALF -D__CUDA_NO_HALF_OPERATORS__
 CPPFLAGS:=
@@ -111,6 +113,7 @@ ALL:=
 ALL_LIBS:=
 PYTHON_LIBS:=
 JAVA_LIBS:=
+CSHARP_LIBS:=
 LIBS_FULLPATH:=
 SRC:=
 
@@ -304,7 +307,7 @@ RPATH=-Wl,-rpath,
 # Build info
 ########################################
 
-BUILDINFO:= $(SOURCEDIR)/CNTKv2LibraryDll/buildinfo.h
+BUILDINFO:= $(SOURCEDIR)/CNTKv2LibraryDll/Generated/Linux/buildinfo.h
 GENBUILD:=Tools/generate_build_info
 
 BUILDINFO_OUTPUT := $(shell $(GENBUILD) $(BUILD_TOP)/Config.make && echo Success)
@@ -331,6 +334,7 @@ PERF_PROFILER_LIB:= $(LIBDIR)/lib$(PERF_PROFILER).so
 ALL_LIBS += $(PERF_PROFILER_LIB)
 PYTHON_LIBS += $(PERF_PROFILER_LIB)
 JAVA_LIBS += $(PERF_PROFILER_LIB)
+CSHARP_LIBS += $(PERF_PROFILER_LIB)
 SRC += $(PP_SRC)
 
 $(PERF_PROFILER_LIB): $(PP_OBJ)
@@ -431,6 +435,7 @@ CNTKMATH_LIB:= $(LIBDIR)/lib$(CNTKMATH).so
 ALL_LIBS += $(CNTKMATH_LIB)
 PYTHON_LIBS += $(CNTKMATH_LIB)
 JAVA_LIBS += $(CNTKMATH_LIB)
+CSHARP_LIBS += $(CNTKMATH_LIB)
 SRC+=$(MATH_SRC)
 
 $(CNTKMATH_LIB): $(MATH_OBJ) | $(PERF_PROFILER_LIB)
@@ -512,24 +517,35 @@ CNTKLIBRARY_COMMON_SRC =\
 	$(SOURCEDIR)/CNTKv2LibraryDll/tensorboard/tensorboard.pb.cc \
 	$(SOURCEDIR)/CNTKv2LibraryDll/tensorboard/TensorBoardFileWriter.cpp \
 	$(SOURCEDIR)/CNTKv2LibraryDll/tensorboard/TensorBoardUtils.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/protobuf/onnx-ml.pb.cc \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/defs/activation/defs.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/defs/generator/defs.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/defs/logical/defs.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/defs/math/defs.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/defs/nn/defs.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/defs/reduction/defs.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/defs/rnn/defs.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/defs/tensor/defs.cpp \
-    $(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/defs/traditionalml/defs.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/constants.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/status.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/utils.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/opsignature.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/op.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/shape_inference.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/graph.cpp \
-	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/model.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/common/logging/capture.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/common/logging/logging.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/common/status.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/graph/graph.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/graph/graph_transformer.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/graph/model.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/graph/op.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/core/graph/tensorutils.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/controlflow/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/experiments/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/generator/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/logical/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/logical/old.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/math/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/math/old.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/nn/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/nn/old.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/reduction/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/rnn/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/rnn/old.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/tensor/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/tensor/old.cpp \
+    $(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/traditionalml/defs.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/data_type_utils.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/defs/schema.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/common/assertions.cpp \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/protobuf/onnx-ml.pb.cc \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/protobuf/onnx-operators-ml.pb.cc \
+	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/onnx/checker.cpp \
 	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/Operators.cpp \
 	$(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/RNNHelper.cpp \
     $(SOURCEDIR)/CNTKv2LibraryDll/proto/onnx/CNTKToONNX.cpp \
@@ -557,6 +573,7 @@ CNTKLIBRARY_LIB:=$(LIBDIR)/lib$(CNTKLIBRARY).so
 ALL_LIBS+=$(CNTKLIBRARY_LIB)
 PYTHON_LIBS+=$(CNTKLIBRARY_LIB)
 JAVA_LIBS+=$(CNTKLIBRARY_LIB)
+CSHARP_LIBS+=$(CNTKLIBRARY_LIB)
 SRC+=$(CNTKLIBRARY_SRC)
 
 $(CNTKLIBRARY_LIB): $(CNTKLIBRARY_OBJ) | $(CNTKMATH_LIB)
@@ -1540,6 +1557,50 @@ endif
 	javac -cp $(JAVA_SWIG_DIR) $(JAVA_TEST_DIR)/src/Main.java -d $(LIBDIR)/java
 
 ALL += java
+
+endif
+
+########################################
+# C# Support
+########################################
+ifeq ("$(CSHARP_SUPPORT)","true")
+	
+# This is a short-term hack to shoehorn cmake into our build system. In the near future, we will fully migrate
+# to a cmake-based system and this hack will no longer be necessary.
+
+ifeq ("$(BUILDTYPE)","debug")
+	CSHARP_BUILDTYPE:=Debug
+endif
+ifeq ("$(BUILDTYPE)","release")
+	CSHARP_BUILDTYPE:=Release
+endif
+
+.PHONY: csharp
+csharp: $(CSHARP_LIBS)
+	@echo $(SEPARATOR)
+	@echo creating $@ for $(ARCH) with build type $(CSHARP_BUILDTYPE)
+	mkdir -p bindings/csharp/Swig/build/Linux/$(CSHARP_BUILDTYPE)
+	cd bindings/csharp/Swig/build/Linux/$(CSHARP_BUILDTYPE) && \
+		cmake ../../.. -DCNTK_VERSION=$(BUILD_VERSION) -DCMAKE_BUILD_TYPE=$(CSHARP_BUILDTYPE) && \
+		make
+	mkdir -p bindings/csharp/CNTKLibraryManagedDll/build/Linux/$(CSHARP_BUILDTYPE)
+	cd bindings/csharp/CNTKLibraryManagedDll/build/Linux/$(CSHARP_BUILDTYPE) && \
+		cmake ../../.. -DCNTK_VERSION=$(BUILD_VERSION) -DCMAKE_BUILD_TYPE=$(CSHARP_BUILDTYPE) && \
+		make
+	cp --recursive bindings/csharp/CNTKLibraryManagedDll/build/Linux/$(CSHARP_BUILDTYPE)/AnyCPU/$(CSHARP_BUILDTYPE)/* $(LIBDIR)
+
+ALL += csharp
+	
+# Note that CMakeLists.txt has not been created for this project yet. The paths created here are really ugly.
+V2LibraryCSTests.dll: csharp
+	@echo $(SEPARATOR)
+	@echo creating $@ for $(ARCH) with build type $(CSHARP_BUILDTYPE)
+	cd Tests/UnitTests/V2LibraryCSTests && \
+		mkdir -p build/Linux/$(CSHARP_BUILDTYPE) && \
+		dotnet build /p:OutDirPrefix=build/Linux/$(CSHARP_BUILDTYPE) /p:PlatformName=Linux -c $(CSHARP_BUILDTYPE)
+	cp $(LIBDIR)/*.so Tests/UnitTests/V2LibraryCSTests/build/Linux/$(CSHARP_BUILDTYPE)/AnyCPU/$(CSHARP_BUILDTYPE)
+	
+ALL += V2LibraryCSTests.dll
 
 endif
 

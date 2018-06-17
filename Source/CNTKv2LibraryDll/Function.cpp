@@ -805,7 +805,9 @@ namespace CNTK
 
                             if (existingPlaceholderReplacement == placeholderReplacements.end())
                             {
-                                clonedInput = PlaceholderVariable();
+                                //we need to carry the shape information to the new placeholder otherwise, deep chained recurrence with reshaping ops will fail (e.g. expand_dims);
+                                //however, we can not carry over the dynamic axis, as the placeholder might be replaced with different dynamic axes
+                                clonedInput = PlaceholderVariable(cloneeInput.Shape());
                                 placeholderReplacements[clonedInput] = cloneeInput;
                             }
                             else
@@ -1686,6 +1688,23 @@ namespace CNTK
         additionalProperties[PrimitiveFunction::AttributeNameFillValue] = 1.0;
 
         return UnaryOp(PrimitiveOpType::ConstantOp, operand, std::move(additionalProperties), name);
+    }
+
+    FunctionPtr CustomProxyOp(const std::vector<Variable>& operands, const std::wstring& customOp, const NDShape& outputShape, DataType outputType, const std::wstring& name)
+    {
+        auto attributes = Dictionary();
+        attributes[PrimitiveFunction::AttributeNameCustomOp] = customOp;
+        attributes[PrimitiveFunction::AttributeNameOutputShape] = outputShape;
+        attributes.Add(PrimitiveFunction::AttributeNameNewDataType, static_cast<int>(outputType));
+        auto op = AsComposite(MakeSharedObject<PrimitiveFunction>(PrimitiveOpType::CustomProxyOp, operands, std::move(attributes), name));
+        return op;
+    }
+    
+    FunctionPtr EyeLike(const Variable& operand, bool isOutputSparse, const std::wstring& name)
+    {
+        auto additionalProperties = Dictionary();
+        additionalProperties[PrimitiveFunction::AttributeNameOutputSparse] = isOutputSparse;
+        return UnaryOp(PrimitiveOpType::EyeLikeOp, operand, std::move(additionalProperties), name);
     }
 
     std::vector<Variable> AutoBroadcastSequence(PrimitiveOpType op, const Variable& left, const Variable& right, bool autoBroadcast)
