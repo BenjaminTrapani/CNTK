@@ -257,15 +257,25 @@ public:
         // Fetch all chunks in parallel.
         std::vector<std::map<ChunkIdType, std::shared_ptr<std::future<ChunkPtr>>>> chunks;
         chunks.resize(chunk.m_secondaryChunks.size());
+
         for (size_t i = 0; i < chunk.m_secondaryChunks.size(); ++i)
         {
             for (const auto& c : chunk.m_secondaryChunks[i])
             {
+				std::launch launchPolicy;
+				if (i == 0 && c == original.m_id)
+				{
+					launchPolicy = std::launch::deferred;
+				}
+				else
+				{
+					launchPolicy = std::launch::async;
+				}
                 chunks[i].emplace(
                     std::make_pair(c,
                         std::make_shared<std::future<ChunkPtr>>(
                             std::async(
-                                launch::async,
+								launchPolicy,
                                 [this, c, i]()
                                 {
                                     ChunkPtr chunk = m_parent->m_weakChunkTable[i][c].lock();
