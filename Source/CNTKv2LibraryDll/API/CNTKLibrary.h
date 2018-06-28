@@ -123,6 +123,8 @@ namespace CNTK
             return DataType::Int8;
         else if (std::is_same<ElementType, int16_t>())
             return DataType::Int16;
+        else if (std::is_same<ElementType, uint16_t>()) // In ONNX, float16 values must be converted to an uint16_t to prior writing to the buffer.
+            return DataType::Float16;
         else
             NOT_IMPLEMENTED;
     }
@@ -4797,7 +4799,12 @@ namespace CNTK
     /// Create an instance of the CNTK built-in argmin on specified tensor input operand along the specified axis
     ///
     CNTK_API FunctionPtr Argmin(const Variable& operand, const Axis& axis, const std::wstring& name = L"");
- 
+
+    ///
+    /// Create an instance of the CNTK built-in elementwise scaled exponential linear unit operation with the specified input operand.
+    ///
+    CNTK_API FunctionPtr StraightThrough(const Variable& operand, const std::wstring& name = L"");
+
     ///
     /// Create an instance of the CNTK built-in operator for converting the specified tensor operand into a sequence
     ///

@@ -1462,6 +1462,29 @@ def param_relu(alpha, x, name=''):
     x = sanitize_input(x)
     return pre_lu(alpha, x, name)
 
+@typemap
+def straight_through_impl(x, name=''):
+    '''
+    element-wise binarization node using the straight through estimator
+
+    Example:
+        >>> # create (1,3) matrix 
+        >>> data = np.asarray([[-3, 4, -2]], dtype=np.float32)
+        >>> x = C.input_variable((3))
+        >>> C.straight_through_impl(x).eval({x:data})
+        array([[-1., 1., -1.]], dtype=float32)
+
+    Args:
+        inputs: one input tensor
+        name (str, optional, keyword only): the name of the Function instance in the network
+
+    Returns:
+        :class:`~cntk.ops.functions.Function`
+    '''
+
+    from cntk.cntk_py import straight_through
+    x = sanitize_input(x)
+    return straight_through(x, name) # C++ projection expects inputs as a list
 
 @typemap
 def softplus(x, steepness=1, name=''):
@@ -3853,15 +3876,15 @@ def depth_to_space(operand, block_size, name=''):
         >>> a = C.input_variable((8, 2, 3))
         >>> d2s_op = C.depth_to_space(a, block_size=2)
         >>> d2s_op.eval({a:x})
-        array([[[[ 0.,  1.,  0.,  1.,  0.,  1.],
-                 [ 2.,  3.,  2.,  3.,  2.,  3.],
-                 [ 0.,  1.,  0.,  1.,  0.,  1.],
-                 [ 2.,  3.,  2.,  3.,  2.,  3.]],
+        array([[[[ 0.,  2.,  0.,  2.,  0.,  2.],
+                 [ 4.,  6.,  4.,  6.,  4.,  6.],
+                 [ 0.,  2.,  0.,  2.,  0.,  2.],
+                 [ 4.,  6.,  4.,  6.,  4.,  6.]],
         <BLANKLINE>
-                [[ 4.,  5.,  4.,  5.,  4.,  5.],
-                 [ 6.,  7.,  6.,  7.,  6.,  7.],
-                 [ 4.,  5.,  4.,  5.,  4.,  5.],
-                 [ 6.,  7.,  6.,  7.,  6.,  7.]]]], dtype=float32)
+                [[ 1.,  3.,  1.,  3.,  1.,  3.],
+                 [ 5.,  7.,  5.,  7.,  5.,  7.],
+                 [ 1.,  3.,  1.,  3.,  1.,  3.],
+                 [ 5.,  7.,  5.,  7.,  5.,  7.]]]], dtype=float32)
 
     Args:
         operand: Input tensor, with dimensions :math:`[C \\times H \\times W]`.
