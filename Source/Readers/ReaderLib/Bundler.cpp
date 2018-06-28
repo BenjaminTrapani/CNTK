@@ -257,23 +257,28 @@ public:
         // Fetch all chunks in parallel.
         std::vector<std::map<ChunkIdType, std::shared_future<ChunkPtr>>> chunks;
         chunks.resize(chunk.m_secondaryChunks.size());
-		static std::atomic<unsigned long long int> chunksInProgress = 0;
 
         for (size_t i = 0; i < chunk.m_secondaryChunks.size(); ++i)
         {
             for (const auto& c : chunk.m_secondaryChunks[i])
             {
 				const auto chunkCreationLambda = ([this, c, i] {
-					chunksInProgress++;
 					ChunkPtr chunk = m_parent->m_weakChunkTable[i][c].lock();
 					if (chunk) {
-						chunksInProgress--;
 						return chunk;
 					}
-					chunksInProgress--;
 					return m_parent->m_deserializers[i]->GetChunk(c);
 				});
-				std::future<ChunkPtr> chunkCreateFuture = std::async(std::launch::deferred, chunkCreationLambda);
+				std::launch launchPolicy;
+				if (i == 0 && c == original.m_id)
+				{
+					launchPolicy = std::launch::deferred;
+				}
+				else
+				{
+					launchPolicy = std::launch::async;
+				}
+				std::future<ChunkPtr> chunkCreateFuture = std::async(launchPolicy, chunkCreationLambda);
                 chunks[i].emplace(c, chunkCreateFuture.share());
             }
         }
