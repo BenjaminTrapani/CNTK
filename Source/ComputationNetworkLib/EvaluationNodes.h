@@ -470,31 +470,31 @@ public:
 
 	virtual void BackpropToNonLooping(size_t /*inputIndex*/) override
 	{
-		LogicError("%ls operation is used for evaluation only.", OperationName().c_str());
+		LogicError("%ls operation is used for evaluation only.", this->OperationName().c_str());
 	}
 
 	virtual void ComputeTextError() = 0;
 
 	virtual void ForwardPropNonLooping() override
 	{
-		bool isInput0Sparse = Input(0)->template Is<SparseInputValue<ElemType>>();
-		bool isInput1Sparse = Input(1)->template Is<SparseInputValue<ElemType>>();
+		bool isInput0Sparse = this->Input(0)->template Is<SparseInputValue<ElemType>>();
+		bool isInput1Sparse = this->Input(1)->template Is<SparseInputValue<ElemType>>();
 		if (isInput0Sparse || isInput1Sparse)
 			LogicError("EditDistanceError node was not tested for sparse inputs.");
 
-		FrameRange frameRange(Input(0)->GetMBLayout());
-		Input(0)->ValueFor(frameRange).VectorMax(*m_maxIndexes0, *m_maxValues, true);
-		Input(1)->ValueFor(frameRange).VectorMax(*m_maxIndexes1, *m_maxValues, true);
+		FrameRange frameRange(this->Input(0)->GetMBLayout());
+		this->Input(0)->ValueFor(frameRange).VectorMax(*m_maxIndexes0, *m_maxValues, true);
+		this->Input(1)->ValueFor(frameRange).VectorMax(*m_maxIndexes1, *m_maxValues, true);
 
-		MaskMissingColumnsToZero(*m_maxIndexes0, Input(0)->GetMBLayout(), frameRange);
-		MaskMissingColumnsToZero(*m_maxIndexes1, Input(1)->GetMBLayout(), frameRange);
+		this->MaskMissingColumnsToZero(*m_maxIndexes0, this->Input(0)->GetMBLayout(), frameRange);
+		this->MaskMissingColumnsToZero(*m_maxIndexes1, this->Input(1)->GetMBLayout(), frameRange);
 
 		ComputeTextError();
 	}
 
 	virtual void Validate(bool isFinalValidationPass) override
 	{
-		ValidateBinaryReduce(isFinalValidationPass);
+		this->ValidateBinaryReduce(isFinalValidationPass);
 	}
 
 	virtual void UpdateFunctionMBSize() override
@@ -502,7 +502,7 @@ public:
 		Base::UpdateFunctionMBSize();
 
 		// resize the temporaries to their proper size
-		size_t cols = Input(0)->Value().GetNumCols();
+		size_t cols = this->Input(0)->Value().GetNumCols();
 		m_maxIndexes0->Resize(1, cols);
 		m_maxIndexes1->Resize(1, cols);
 		m_maxValues->Resize(1, cols);
@@ -514,7 +514,7 @@ public:
 
 		if (flags & CopyNodeFlags::copyNodeValue)
 		{
-			auto node = dynamic_pointer_cast<EditDistanceErrorNode<ElemType>>(nodeP);
+			auto node = dynamic_pointer_cast<TextTranscriptionErrorNodeBase<ElemType>>(nodeP);
 			node->m_maxIndexes0 = m_maxIndexes0;
 			node->m_maxIndexes1 = m_maxIndexes1;
 			node->m_maxValues = m_maxValues;
@@ -527,9 +527,9 @@ public:
 	virtual void RequestMatricesBeforeForwardProp(MatrixPool& matrixPool)
 	{
 		Base::RequestMatricesBeforeForwardProp(matrixPool);
-		RequestMatrixFromPool(m_maxIndexes0, matrixPool);
-		RequestMatrixFromPool(m_maxIndexes1, matrixPool);
-		RequestMatrixFromPool(m_maxValues, matrixPool);
+		this->RequestMatrixFromPool(m_maxIndexes0, matrixPool);
+		this->RequestMatrixFromPool(m_maxIndexes1, matrixPool);
+		this->RequestMatrixFromPool(m_maxValues, matrixPool);
 	}
 
 	//release temp matrices that are only used by forward computation
@@ -537,9 +537,9 @@ public:
 	virtual void ReleaseMatricesAfterForwardProp(MatrixPool& matrixPool)
 	{
 		Base::ReleaseMatricesAfterForwardProp(matrixPool);
-		ReleaseMatrixToPool(m_maxIndexes0, matrixPool);
-		ReleaseMatrixToPool(m_maxIndexes1, matrixPool);
-		ReleaseMatrixToPool(m_maxValues, matrixPool);
+		this->ReleaseMatrixToPool(m_maxIndexes0, matrixPool);
+		this->ReleaseMatrixToPool(m_maxIndexes1, matrixPool);
+		this->ReleaseMatrixToPool(m_maxValues, matrixPool);
 	}
 
 	virtual void Save(File& fstream) const override
@@ -619,14 +619,14 @@ public:
 		: TranscriptionErrorNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get(L"squashInputs"), {})
 	{
 		AttachInputsFromConfig(configp, this->GetExpectedNumInputs());
-		m_tokensToIgnore = ScriptableObjects::ConfigArray::FlattenedVectorFrom<size_t>(configp->Get(L"tokensToIgnore"));
+		this->m_tokensToIgnore = ScriptableObjects::ConfigArray::FlattenedVectorFrom<size_t>(configp->Get(L"tokensToIgnore"));
 	}
 
 	virtual void ComputeTextError() override {
 		vector<int> firstSeqVec;
 		vector<int> secondSeqVec;
 		ElemType numIncorrectSeqs = 0;
-		MBLayoutPtr pMBLayout = Input(0)->GetMBLayout();
+		MBLayoutPtr pMBLayout = this->Input(0)->GetMBLayout();
 		for (const auto& sequence : pMBLayout->GetAllSequences())
 		{
 			if (sequence.seqId == GAP_SEQUENCE_ID)
@@ -637,16 +637,16 @@ public:
 			if (numFrames > 0)
 			{
 				auto columnIndices = pMBLayout->GetColumnIndices(sequence);
-				ExtractSampleSequence(*m_maxIndexes0, columnIndices, m_squashInputs, m_tokensToIgnore, firstSeqVec);
-				ExtractSampleSequence(*m_maxIndexes1, columnIndices, m_squashInputs, m_tokensToIgnore, secondSeqVec);
+				this->ExtractSampleSequence(*this->m_maxIndexes0, columnIndices, this->m_squashInputs, this->m_tokensToIgnore, firstSeqVec);
+				this->ExtractSampleSequence(*this->m_maxIndexes1, columnIndices, this->m_squashInputs, this->m_tokensToIgnore, secondSeqVec);
 				if (firstSeqVec != secondSeqVec) 
 				{
 					++numIncorrectSeqs;
 				}
 			}
 		}
-		Value()(0, 0) = numIncorrectSeqs;
-		Value().TransferToDeviceIfNotThere(Input(0)->GetDeviceId());
+		this->Value()(0, 0) = numIncorrectSeqs;
+		this->Value().TransferToDeviceIfNotThere(this->Input(0)->GetDeviceId());
 	}
 };
 
@@ -687,11 +687,11 @@ public:
         : EditDistanceErrorNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get(L"subPen"), configp->Get(L"delPen"), configp->Get(L"insPen"), configp->Get(L"squashInputs"), {})
     {
         AttachInputsFromConfig(configp, this->GetExpectedNumInputs());
-        m_tokensToIgnore = ScriptableObjects::ConfigArray::FlattenedVectorFrom<size_t>(configp->Get(L"tokensToIgnore"));
+        this->m_tokensToIgnore = ScriptableObjects::ConfigArray::FlattenedVectorFrom<size_t>(configp->Get(L"tokensToIgnore"));
     }
 
 	virtual void ComputeTextError() override {
-		Value()(0, 0) = ComputeEditDistanceError(*m_maxIndexes0, *m_maxIndexes1, Input(0)->GetMBLayout(), m_subPen, m_delPen, m_insPen, m_squashInputs, m_tokensToIgnore);
+		Value()(0, 0) = ComputeEditDistanceError(*this->m_maxIndexes0, *this->m_maxIndexes1, Input(0)->GetMBLayout(), m_subPen, m_delPen, m_insPen, this->m_squashInputs, this->m_tokensToIgnore);
 		Value().TransferToDeviceIfNotThere(Input(0)->GetDeviceId());
 	}
 
@@ -750,8 +750,8 @@ public:
 
                 auto columnIndices = pMBLayout->GetColumnIndices(sequence);
 
-                ExtractSampleSequence(firstSeq, columnIndices, squashInputs, tokensToIgnore, firstSeqVec);
-                ExtractSampleSequence(secondSeq, columnIndices, squashInputs, tokensToIgnore, secondSeqVec);
+                this->ExtractSampleSequence(firstSeq, columnIndices, squashInputs, tokensToIgnore, firstSeqVec);
+                this->ExtractSampleSequence(secondSeq, columnIndices, squashInputs, tokensToIgnore, secondSeqVec);
 
                 //calculate edit distance
                 size_t firstSize = firstSeqVec.size();
